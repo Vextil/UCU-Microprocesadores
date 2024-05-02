@@ -49,6 +49,8 @@ start:
 	ldi		r24,	0x00		;inicializo r24 para contar las llamadas al timer
 	ldi     r25,    0x00        ;inicializo r25 para contar los segundos transcurridos
 	ldi     r26,    0x00        ;inicializo r26 para almacenar el estado del cronómetro
+	ldi     r27,    0x00 
+	ldi     r28,    0x00 
 ;-------------------------------------------------------------------------------------
 
 
@@ -84,7 +86,10 @@ fin:
 ; El reloj de I/O está configurado @ Fclk = 16.000.000 Hz = 2^10*5^6; entonces voy a interrumpir 125 veces por segundo
 ; esto sale de dividir Fclk por el prescaler y el valor de OCR0A.
 
-_tmr0_int:			
+_tmr0_int:		
+		push	r16
+		in      r16, SREG      
+		push    r16    
 		cpi     r26, 1				;está pausado el cronómetro?
 		breq    _tmr0_out			;si la condición anterior se cumple, cortamos la ejecución del timer
 		cpi		r24, 125			;comparo r24 con 125, llegamos al valor necesario para 1 segundo?
@@ -93,15 +98,19 @@ _tmr0_int:
 		rjmp	_tmr0_out           ;salto a la salida del timer
 _tmr0_segundo:
 		ldi		r24, 0	            ;reseteo el valor de r24 a 0
-		sbi		PINB, 2			    ;toggle LED (D4)
-		cpi		r25, 255			;comparo r25 con 255, llegamos a 255 segundos?
+		cpi		r25, 16			    ;comparo r25 con 16, llegamos a 16 segundos?
 		breq	_tmr0_segundosCero  ;si se cumple, brancheamos a _tmr0_segundosCero
 		inc     r25					;aumento el contador de segundos
+		call    actualizar_leds
 		rjmp	_tmr0_out			;salto a la salida del timer
 _tmr0_segundosCero:
 		ldi     r25, 0              ;reseteo el valor de r25 a 0
-		sbi		PINB, 3             ;toggle LED (D3)
+		call    actualizar_leds
+		rjmp    _tmr0_out
 _tmr0_out:
+		pop     r16
+		out     SREG, r16
+		pop		r16
 	    reti						;retorno de la rutina de interrupción del Timer0
 
 ; ------------------------------------------------
@@ -113,7 +122,9 @@ _tmr0_out:
 
 
 _pci1_int:
-		sbi		PINB, 5				;toggle LED (D1) para indicar que entramos a esta interrupción
+		push	r16
+		in      r16, SREG      
+		push    r16        
 		sbis	PINC, 1				;ignoro la instrucción que sigue si A1 no está presionado
 		rjmp	_pci1_boton_A1		;salto al bloque de A1
 		sbis	PINC, 2				;ignoro la instrucción que sigue si A2 no está presionado
@@ -121,13 +132,24 @@ _pci1_int:
 		sbis	PINC, 3				;ignoro la instrucción que sigue si A3 no está presionado
 		rjmp    _pci1_boton_A3		;salto al bloque de A3
 _pci1_out:
+		pop     r16
+		out     SREG, r16
+		pop		r16
 		reti
 _pci1_boton_A1:
-		ldi r25, 0                  ;reinicio el contador de segundos a 0
-		rjmp _pci1_out				;salto a la salida de la interrupción
+		ldi     r25, 0              ;reinicio el contador de segundos a 0
+		call	actualizar_leds
+		rjmp    _pci1_out	        ;salto a la salida de la interrupción
 _pci1_boton_A2:  
-		ldi r26, 1					;pauso el cronometro
-		rjmp _pci1_out				;salto a salida de la interrupción
+		ldi     r26, 1				;pauso el cronometro
+		rjmp    _pci1_out			;salto a salida de la interrupción
 _pci1_boton_A3:
-		ldi r26, 0					;play al cronometro
-		rjmp _pci1_out				;salto a salida de la interrupción
+		ldi     r26, 0				;play al cronometro
+		rjmp    _pci1_out			;salto a salida de la interrupción
+
+
+actualizar_leds:
+		mov     r27, r25			;guardo el valor del timer en otro registro para modificarlo
+		lsl     r27					;muevo el valor un bit a la izquierda, ya que los LED comienzan en el bit 1
+		out     PORTB, r27
+		ret
