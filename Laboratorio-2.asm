@@ -105,7 +105,7 @@ _tmr0_out:
 	    reti						;retorno de la rutina de interrupción del Timer0
 
 ; ------------------------------------------------
-; Rutina de atención a la interrupción del botón A1 y A2.
+; Rutina de atención a la interrupción botones A1, A2 y A3.
 ; ------------------------------------------------
 ; Botón A1: Reiniciar el cronometro a 0
 ; Botón A2: Pausar el cronometro
