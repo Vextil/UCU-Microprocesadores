@@ -150,6 +150,8 @@ _pci1_boton_A3:
 
 actualizar_leds:
 		mov     r27, r25			;guardo el valor del timer en otro registro para modificarlo
-		lsl     r27					;muevo el valor un bit a la izquierda, ya que los LED comienzan en el bit 1
+		lsl     r27					
+		lsl     r27                 ;muevo el valor dos bits a la izquierda, ya que los LED comienzan en el bit 2
+		com     r27                 ;invierto todos los bits para mostrar LED prendidos como 1 y apagados como 0
 		out     PORTB, r27
 		ret
