@@ -1,12 +1,5 @@
 .include "./m328Pdef.inc"
 
-;
-; Ejemplo_Interrupción_Timer0.asm
-;
-; Created: 12/9/2021 22:00:38
-; Author : curso de microprocesadores
-;
-
 ; Empiezo con los vectores de interrupción
 .ORG 0x0000
 	jmp		start		;dirección de comienzo (vector de reset) 
@@ -30,7 +23,6 @@ start:
     ldi		r16,	0b00111101	
 	out		DDRB,	r16			;4 LEDs del shield son salidas
 	out		PORTB,	r16			;apago los LEDs
-
 	ldi		r16,	0b00000000	
 	out		DDRC,	r16			;3 botones del shield son entradas
 ;-------------------------------------------------------------------------------------
@@ -49,44 +41,40 @@ start:
 	sts PCICR, r16				;configuro el PCIFR (pin change interrupt control register) para el puerto C (Orden: BCD)
 	ldi r16, 0b00001110	
 	sts PCMSK1, r16				;configuro el PCMSK1 (pines 1, 2 y 3 del puerto C, para botones A1, A2 y A3)
-
+;-------------------------------------------------------------------------------------
+;Configuro salida del 7 segmentos
 	ldi		r16,	0b10010000
 	out		DDRD,	r16			;configuro PD.4 y PD.7 como salidas
 	cbi		PORTD,	7			;PD.7 a 0, es el reloj serial, inicializo a 0
 	cbi		PORTD,	4			;PD.4 a 0, es el reloj del latch, inicializo a 0
-
 ;-------------------------------------------------------------------------------------
 ;Inicializo algunos registros que voy a usar como variables.
-	ldi		contador_timer,	0x00		;inicializo contador_timer para contar las llamadas al timer
-	ldi     segundos,    0x00        ;inicializo segundos para contar los segundos transcurridos
+	ldi		contador_timer,	0x00	;inicializo contador_timer para contar las llamadas al timer
+	ldi     segundos,    0x00       ;inicializo segundos para contar los segundos transcurridos
 	ldi     minutos,    0x00        ;inicializo segundos para contar los segundos transcurridos
 	ldi     pausado,    0x00        ;inicializo r26 para almacenar el estado del cronómetro
 	ldi     digito,    0x00 
 ;-------------------------------------------------------------------------------------
-
-; Tabla de traducción de números a segmentos del display de 7 segmentos
-; Los valores son los segmentos activos para formar los dígitos del 0 al 9
+; Tabla de traducción de números a 7 segmentos
 segment_table:
-  .db 0b00000011, 0x00 ; 0
-  .db 0b10011111, 0x00 ; 1
-  .db 0b00100101, 0x00 ; 2
-  .db 0b00001101, 0x00 ; 3
-  .db 0b10011001, 0x00 ; 4
-  .db 0b01001001, 0x00 ; 5
-  .db 0b01000001, 0x00 ; 6
-  .db 0b00011111, 0x00 ; 7
-  .db 0b00000001, 0x00 ; 8
-  .db 0b00001001, 0x00 ; 9
+  .db 0b00000011 ;0
+  .db 0b10011111 ;1
+  .db 0b00100101 ;2
+  .db 0b00001101 ;3
+  .db 0b10011001 ;4
+  .db 0b01001001 ;5
+  .db 0b01000001 ;6
+  .db 0b00011111 ;7
+  .db 0b00000001 ;8
+  .db 0b00001001 ;9
 
-apagar:		; apaga todo el display de 7 segmentos
+apagar:		;apaga todo el display de 7 segmentos
 	ldi r16,0
 	ldi r17,0b11110000
 	call sacanum
 
-;Programa principal ... acá puedo hacer lo que quiero
-
 comienzo:
-	sei							;habilito las interrupciones globales(set interrupt flag)
+	sei		;habilito las interrupciones globales(set interrupt flag)
 
 loop:
 	nop
@@ -154,14 +142,14 @@ _pci1_out:
 		pop		r16
 		reti
 _pci1_boton_A1:
-		ldi     segundos, 0              ;reinicio el contador de segundos a 0
-		ldi     minutos, 0              ;reinicio el contador de minutos a 0
+		ldi     segundos, 0         ;reinicio el contador de segundos a 0
+		ldi     minutos, 0          ;reinicio el contador de minutos a 0
 		rjmp    _pci1_out	        ;salto a la salida de la interrupción
 _pci1_boton_A2:  
-		ldi     pausado, 1				;pauso el cronometro
+		ldi     pausado, 1		    ;pauso el cronometro
 		rjmp    _pci1_out			;salto a salida de la interrupción
 _pci1_boton_A3:
-		ldi     pausado, 0				;play al cronometro
+		ldi     pausado, 0			;play al cronometro
 		rjmp    _pci1_out			;salto a salida de la interrupción
 
 
@@ -177,37 +165,33 @@ actualizar_leds:
 		ret
 actualizar_0:
 		ldi digito, 1
-		mov r18, minutos
-		ldi r19, 10
-		call divmod
+		mov r19, minutos
+		call mod10
 		mov r16, r20
 		ldi r17, 0b10000000
 		call sacanum
 		ret
 actualizar_1:	
 		ldi digito, 2
-		mov r18, minutos
-		ldi r19, 10
-		call divmod
-		mov r16, r18
+		mov r19, minutos
+		call mod10
+		mov r16, r19
 		ldi r17, 0b01000000
 		call sacanum
 		ret
 actualizar_2:
 		ldi digito, 3
-		mov r18, segundos
-		ldi r19, 10
-		call divmod
+		mov r19, segundos
+		call mod10
 		mov r16, r20
 		ldi r17, 0b00100000
 		call sacanum
 		ret
 actualizar_3:
 		ldi	digito, 0
-		mov r18, segundos
-		ldi r19, 10
-		call divmod
-		mov r16, r18
+		mov r19, segundos
+		call mod10
+		mov r16, r19
 		ldi r17, 0b00010000
 		call sacanum
 		ret
@@ -217,20 +201,20 @@ actualizar_3:
 ; r16 - contiene los LEDs a prender/apagar 0 - prende, 1 - apaga
 ; r17 - contiene el dígito: r17 = 1000xxxx 0100xxxx 0010xxxx 0001xxxx del dígito menos al más significativo.
 sacanum: 
-	ldi r18, 0                       ; Clear r18
-    ldi ZH, high(segment_table * 2) ; Load the high byte of the address
-    ldi ZL, low(segment_table * 2)  ; Load the low byte of the address
-	lsl r16
-    add ZL, r16                      ; Add the offset to ZL
-    adc ZH, r18                      ; Add the carry to the high byte
-    lpm r16, Z                        ; Load the value from the table into r16
+	ldi		r18, 0                       ; limpio r18, para usar en adc
+    ldi		ZH, high(segment_table * 2)  ; cargo el lado "alto" de la tabla
+    ldi		ZL, low(segment_table * 2)   ; cargo el lado "bajo" de la tabla
+	lsl		r16
+    add		ZL, r16                      ; sumo el offset
+    adc		ZH, r18                      ; sumo el carry de la suma anterior
+    lpm		r16, Z                       ; cargo el valor de la memoria a r16
 	call	dato_serie
 	mov		r16, r17
 	call	dato_serie
 	sbi		PORTD, 4		;PD.4 a 1, es LCH el reloj del latch
 	cbi		PORTD, 4		;PD.4 a 0, 
 	ret
-	;Voy a sacar un byte por el 7seg
+;Voy a sacar un byte por el 7seg
 dato_serie:
 	ldi		r18, 0x08 ; lo utilizo para contar 8 (8 bits)
 loop_dato1:
@@ -247,14 +231,13 @@ loop_dato3:
 	brne	loop_dato1; cuando r17 llega a 0 corta y vuelve
 	ret
 
-; Division routine (r0/r1, result in r0 quotient, r2 remainder)
-divmod:
-    clr r20           ; Clear remainder
-divmod_loop:
-    cp r18, r19        ; Compare r0 with r1
-    brlo divmod_done ; If r0 < r1, we are done
-    sub r18, r19       ; Subtract r1 from r0
-    inc r20           ; Increment remainder
-    rjmp divmod_loop ; Repeat until r0 < r1
-divmod_done:
+mod10:
+    ldi r20, 0        ; limpio el registro del resto
+mod10_loop:
+    cpi r19, 10       ; comparo r19 con 10
+    brlo mod10_done   ; si r19 < 10 terminamos
+    subi r19, 10      ; resto 10 de r19
+    inc r20           ; incremento el resto
+    rjmp mod10_loop   ; repito hasta que r19 < 10
+mod10_done:
     ret
