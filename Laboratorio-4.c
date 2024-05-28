@@ -1,8 +1,10 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 uint8_t digito = 0;
+uint16_t volt = 0;
 
-const uint8_t segment_table[10] = {
+const uint8_t segmentos[10] = {
 	0b00000011, // 0
 	0b10011111, // 1
 	0b00100101, // 2
@@ -19,7 +21,7 @@ void sacanum(uint8_t num, uint8_t digit);
 void dato_serie(uint8_t value);
 
 void sacanum(uint8_t valor, uint8_t digitoSalida) {
-	uint8_t value = segment_table[valor];
+	uint8_t value = segmentos[valor];
 	dato_serie(value);
 	dato_serie(digitoSalida);
 	PORTD |= (1 << 4); // pongo el bit 4 de PORTD a alto (prende PD4) con un OR bit a bit
@@ -48,7 +50,7 @@ uint16_t adc_leer() {
 }
 
 uint16_t adc_prom() {
-	uint16_t max = 10;
+	uint16_t max = 100;
 	uint32_t sum = 0;
 	for (uint8_t i = 0; i < max; i++) {
 		sum += adc_leer();
@@ -56,12 +58,12 @@ uint16_t adc_prom() {
 	return (uint16_t)(sum / max);
 }
 
-float adc_a_voltaje(uint16_t adc) {
-	return (adc * 5.0) / 1024.0;
+uint16_t adc_a_voltaje(uint16_t adc) {
+	return (adc * 5.0);
 }
 
-void actualizar_pantalla(float volt) {
-	uint16_t volt_int = (uint16_t)(volt * 1000); // convierto a un integer (ej 3.45V a 3450)
+void actualizar_pantalla() {
+	uint16_t volt_int = volt;
 	uint8_t digito3 = volt_int % 10; // agarro el digito menos significativo
 	volt_int /= 10;
 	uint8_t digito2 = volt_int % 10;
@@ -93,12 +95,23 @@ void actualizar_pantalla(float volt) {
 int main() {
 	DDRB = 0b00111101;
 	DDRD = 0b10010000;
-	ADMUX = (1 << REFS0); // selecciono un capacitor como referencia
-	ADCSRA |= (1 << ADEN); // habilito el ADC
-	ADCSRA |= (0b111 << ADPS0); // configuro el scaler a 128
+	
+	ADMUX = (1 << REFS0);        // selecciono un capacitor como referencia
+	ADCSRA |= (1 << ADEN);       // habilito el ADC
+	ADCSRA |= (0b111 << ADPS0);  // configuro el scaler a 128
+	
+	TCCR0A = 0b00000010;         // configuro para que cuente hasta OCR0A y vuelve a cero (reset on compare), ahí dispara la interrupción
+    TCCR0B = 0b00000101;         // prescaler = 1024
+    OCR0A = 65;                  // comparo con 65: 16000000/1024/65 = 240, 60hz por digito
+    TIMSK0 = 0b00000010;         // habilito interrupcion
+	sei();                       // habilito interrupcion global
+	
 	while (1) {
 		uint16_t adc_resultado = adc_prom();
-		float volt = adc_a_voltaje(adc_resultado);
-		actualizar_pantalla(volt);
+		volt = adc_a_voltaje(adc_resultado);
 	}
+}
+
+ISR(TIMER0_COMPA_vect) {
+    actualizar_pantalla();
 }
