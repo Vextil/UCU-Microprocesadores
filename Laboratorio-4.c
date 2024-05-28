@@ -97,8 +97,8 @@ int main() {
 	ADCSRA |= (1 << ADEN); // habilito el ADC
 	ADCSRA |= (0b111 << ADPS0); // configuro el scaler a 128
 	while (1) {
-		uint16_t adc_avg_result = adc_prom();
-		float volt = adc_a_voltaje(adc_avg_result);
+		uint16_t adc_resultado = adc_prom();
+		float volt = adc_a_voltaje(adc_resultado);
 		actualizar_pantalla(volt);
 	}
 }
