@@ -51,9 +51,9 @@ start:
 ;Inicializo algunos registros que voy a usar como variables.
 	ldi		contador_timer,	0x00	;inicializo contador_timer para contar las llamadas al timer
 	ldi     segundos,    0x00       ;inicializo segundos para contar los segundos transcurridos
-	ldi     minutos,    0x00        ;inicializo segundos para contar los segundos transcurridos
-	ldi     pausado,    0x00        ;inicializo r26 para almacenar el estado del cronómetro
-	ldi     digito,    0x00 
+	ldi     minutos,    0x00        ;inicializo minutos para contar los minutos transcurridos
+	ldi     pausado,    0x00        ;inicializo pausado para almacenar el estado del cronómetro
+	ldi     digito,    0x00			;inicializo digito para almacenar el siguiente digito a actualizar de la pantalla
 ;-------------------------------------------------------------------------------------
 ; Tabla de traducción de números a 7 segmentos
 segment_table:
@@ -104,7 +104,7 @@ _tmr0_int:
 		rjmp	_tmr0_out             ;salto a la salida del timer
 _tmr0_segundo:
 		ldi		contador_timer, 0	  ;reseteo el valor de contador_timer a 0
-		cpi		segundos, 60	      ;comparo segundos con 60, llegamos a 60 segundos?
+		cpi		segundos, 59	      ;comparo segundos con 59, llegamos a 60 segundos?
 		breq	_tmr0_minuto          ;si se cumple, brancheamos a _tmr0_minuto
 		inc     segundos	          ;aumento el contador de segundos
 		rjmp	_tmr0_out			  ;salto a la salida del timer
